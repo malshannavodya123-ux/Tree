@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Tree Health Monitoring System - Makandura Estate</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Header Bar */
+        .header-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(135deg, #1e5a28 0%, #2d8a3f 100%);
+            color: white;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .header-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-right: 15px;
+        }
+        
+        .header-subtitle {
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            height: 45px;
+            width: auto;
+            background: white;
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .menu-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            gap: 5px;
+        }
+        
+        .menu-icon:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .menu-icon span {
+            width: 25px;
+            height: 3px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+        
+        .menu-icon.active span:nth-child(1) {
+            transform: rotate(45deg) translate(7px, 7px);
+        }
+        
+        .menu-icon.active span:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .menu-icon.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+        
+        /* Menu Panel */
+        .menu-panel {
+            position: absolute;
+            top: 60px;
+            right: -400px;
+            width: 400px;
+            height: calc(100vh - 60px);
+            background: white;
+            box-shadow: -3px 0 15px rgba(0,0,0,0.3);
+            z-index: 999;
+            transition: right 0.3s ease-in-out;
+            overflow-y: auto;
+        }
+        
+        .menu-panel.active {
+            right: 0;
+        }
+        
+        .menu-tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .menu-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .menu-tab:hover {
+            background: #e8e8e8;
+        }
+        
+        .menu-tab.active {
+            color: #2d8a3f;
+            border-bottom-color: #2d8a3f;
+            background: white;
+        }
+        
+        .menu-content {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.3s;
+        }
+        
+        .menu-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .menu-content h2 {
+            color: #2d8a3f;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .menu-content h3 {
+            color: #1e5a28;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .menu-content p {
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        
+        .menu-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .menu-content li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .menu-content li:before {
+            content: "🌿";
+            position: absolute;
+            left: 0;
+        }
+        
+        .detail-card {
+            background: #f8f9fa;
+            border-left: 4px solid #2d8a3f;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        .detail-card h4 {
+            color: #2d8a3f;
+            margin-bottom: 8px;
+        }
+        
+        .detail-card p {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .legend-panel {
+            position: absolute;
+            top: 70px;
+            right: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.25);
+            z-index: 1000;
+            max-width: 320px;
+            overflow: hidden;
+        }
+        
+        .legend-header {
+            background: linear-gradient(135deg, #2d8a3f 0%, #1e5a28 100%);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .legend-content {
+            padding: 12px 15px 15px 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* Summary block inside legend */
+        .legend-summary {
+            background: linear-gradient(90deg, rgba(45,138,63,0.08), rgba(30,90,40,0.03));
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-summary .summary-title {
+            font-weight: 700;
+            color: #1e5a28;
+            font-size: 14px;
+        }
+
+        .legend-summary .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            align-items: center;
+        }
+
+        .legend-summary .summary-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 120px;
+            background: #fff;
+            padding: 6px 8px;
+            border-radius: 6px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.04);
+            font-size: 13px;
+        }
+
+        .legend-summary .summary-label {
+            color: #333;
+            margin-right: 8px;
+        }
+
+        .legend-summary .summary-value {
+            font-weight: 700;
+            color: #2d8a3f;
+        }
+
+        .legend-section {
+            margin-bottom: 18px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 12px;
+        }
+
+        /* Separate summary panel (bottom-right) */
+        .summary-panel {
+            position: absolute;
+            right: 12px;
+            bottom: 72px;
+            width: 300px;
+            background: linear-gradient(180deg, #ffffff, #fbfff9);
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+            z-index: 1100;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 200px;
+            max-width: calc(100vw - 24px);
+        }
+
+        .summary-panel .summary-title {
+            font-weight: 700;
+            color: #18481d;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .summary-panel .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 10px;
+            align-items: center;
+        }
+
+        .summary-panel .summary-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex: 1 1 120px;
+            background: #fff;
+            padding: 8px 10px;
+            border-radius: 8px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.04);
+            font-size: 13px;
+        }
+
+        .summary-panel .summary-label {
+            color: #333;
+        }
+
+        .summary-panel .summary-value {
+            font-weight: 800;
+            color: #2d8a3f;
+            margin-left: 8px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .summary-panel {
+                right: 10px;
+                bottom: 80px;
+                width: 46%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .summary-panel {
+                left: 10px;
+                right: 10px;
+                bottom: 72px;
+                width: auto;
+                padding: 10px;
+            }
+
+            .summary-panel .summary-item { font-size: 12px; padding: 6px 8px; }
+        }
+        
+        .legend-section:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .legend-section-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 15px;
+        }
+        
+        .legend-toggle {
+            cursor: pointer;
+        }
+        
+        .legend-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #2d8a3f;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+        
+        .legend-color {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            margin-right: 12px;
+            border: 2px solid rgba(0,0,0,0.2);
+            flex-shrink: 0;
+        }
+        
+        .legend-label {
+            color: #555;
+            line-height: 1.4;
+        }
+        
+        /* Base Map Selector */
+        .basemap-selector {
+            position: absolute;
+            top: 70px;
+            left: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.25);
+            z-index: 1000;
+            padding: 10px;
+        }
+        
+        .basemap-selector select {
+            padding: 8px 12px;
+            border: 2px solid #2d8a3f;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+            color: #333;
+            outline: none;
+            min-width: 150px;
+        }
+        
+        .basemap-selector select:hover {
+            border-color: #1e5a28;
+            background: #f5f5f5;
+        }
+        
+        /* Map Controls */
+        .leaflet-control-zoom {
+            margin-top: 70px !important;
+            border-radius: 8px !important;
+            overflow: hidden;
+        }
+        
+        .leaflet-control-zoom a {
+            background-color: white !important;
+        }
+        
+        /* Popup Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .leaflet-popup-content {
+            margin: 16px;
+            font-size: 13px;
+        }
+        
+        .leaflet-popup-content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .leaflet-popup-content tr:nth-child(even) {
+            background-color: #f8f8f8;
+        }
+        
+        .leaflet-popup-content td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .leaflet-popup-content td:first-child {
+            font-weight: 600;
+            color: #2d8a3f;
+        }
+        
+        /* Scrollbar Styling */
+        .legend-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .legend-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .legend-content::-webkit-scrollbar-thumb {
+            background: #2d8a3f;
+            border-radius: 4px;
+        }
+        
+        .legend-content::-webkit-scrollbar-thumb:hover {
+            background: #1e5a28;
+        }
+        
+        /* Info Box */
+        .info-box {
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        /* Responsive Design */
+        /* Extra Large Screens (1200px and above) */
+        @media (min-width: 1200px) {
+            .legend-panel {
+                max-width: 350px;
+                max-height: 600px;
+            }
+            
+            .legend-content {
+                max-height: 500px;
+            }
+            
+            .basemap-selector {
+                min-width: 180px;
+            }
+        }
+        
+        /* Large Screens (992px - 1199px) */
+        @media (min-width: 992px) and (max-width: 1199px) {
+            .legend-panel {
+                max-width: 320px;
+                max-height: 550px;
+            }
+            
+            .legend-content {
+                max-height: 450px;
+            }
+        }
+        
+        /* Tablets (768px - 991px) */
+        @media (min-width: 768px) and (max-width: 991px) {
+            .header-title {
+                font-size: 20px;
+            }
+            
+            .header-subtitle {
+                font-size: 12px;
+            }
+            
+            .logo {
+                height: 40px;
+            }
+            
+            .legend-panel {
+                top: 70px;
+                right: 8px;
+                max-width: 280px;
+                max-height: 500px;
+            }
+            
+            .legend-content {
+                max-height: 400px;
+                padding: 12px;
+            }
+            
+            .legend-section {
+                margin-bottom: 15px;
+            }
+            
+            .legend-item {
+                font-size: 12px;
+                margin: 6px 0;
+            }
+            
+            .legend-color {
+                width: 24px;
+                height: 24px;
+            }
+            
+            .basemap-selector {
+                top: 70px;
+                left: 8px;
+                padding: 8px;
+            }
+            
+            .basemap-selector select {
+                min-width: 130px;
+                font-size: 13px;
+                padding: 7px 10px;
+            }
+            
+            .menu-panel {
+                width: 85%;
+                right: -85%;
+            }
+            
+            .info-box {
+                font-size: 12px;
+                padding: 10px 14px;
+                bottom: 15px;
+                left: 8px;
+            }
+        }
+        
+        /* Small Tablets & Large Mobile (481px - 767px) */
+        @media (min-width: 481px) and (max-width: 767px) {
+            .header-title {
+                font-size: 16px;
+            }
+            
+            .header-subtitle {
+                display: none;
+            }
+            
+            .logo {
+                height: 32px;
+            }
+            
+            .logo-container {
+                gap: 8px;
+            }
+            
+            .menu-icon {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .legend-panel {
+                top: 65px;
+                right: 5px;
+                max-width: calc(100vw - 70px);
+                max-height: 45vh;
+            }
+            
+            .legend-content {
+                max-height: 35vh;
+                padding: 10px;
+            }
+            
+            .legend-section {
+                margin-bottom: 12px;
+                padding-bottom: 10px;
+            }
+            
+            .legend-section-title {
+                font-size: 13px;
+                margin-bottom: 8px;
+            }
+            
+            .legend-item {
+                font-size: 11px;
+                margin: 5px 0;
+            }
+            
+            .legend-color {
+                width: 20px;
+                height: 20px;
+                margin-right: 8px;
+            }
+            
+            .legend-label {
+                font-size: 11px;
+            }
+            
+            .basemap-selector {
+                top: 65px;
+                left: 5px;
+                padding: 7px;
+            }
+            
+            .basemap-selector select {
+                min-width: 120px;
+                font-size: 12px;
+                padding: 6px 8px;
+            }
+            
+            .menu-panel {
+                width: 90%;
+                right: -90%;
+            }
+            
+            .menu-tab {
+                padding: 12px;
+                font-size: 14px;
+            }
+            
+            .info-box {
+                font-size: 11px;
+                padding: 8px 12px;
+                bottom: 12px;
+                left: 5px;
+            }
+            
+            .leaflet-control-zoom {
+                margin-top: 65px !important;
+            }
+        }
+        
+        /* Mobile Devices (up to 480px) */
+        @media (max-width: 480px) {
+            .header-title {
+                font-size: 14px;
+            }
+            
+            .header-subtitle {
+                display: none;
+            }
+            
+            .logo {
+                height: 28px;
+            }
+            
+            .logo-container {
+                gap: 5px;
+            }
+            
+            .menu-icon {
+                width: 32px;
+                height: 32px;
+                gap: 3px;
+            }
+            
+            .menu-icon span {
+                width: 20px;
+                height: 2px;
+            }
+            
+            .legend-panel {
+                top: 60px;
+                right: 3px;
+                max-width: calc(100vw - 40px);
+                max-height: 50vh;
+            }
+            
+            .legend-header {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+            
+            .legend-content {
+                max-height: 40vh;
+                padding: 8px;
+            }
+            
+            .legend-section {
+                margin-bottom: 10px;
+                padding-bottom: 8px;
+            }
+            
+            .legend-section-title {
+                font-size: 12px;
+                margin-bottom: 6px;
+            }
+            
+            .legend-toggle input[type="checkbox"] {
+                width: 16px;
+                height: 16px;
+            }
+            
+            .legend-item {
+                font-size: 10px;
+                margin: 4px 0;
+            }
+            
+            .legend-color {
+                width: 18px;
+                height: 18px;
+                margin-right: 6px;
+            }
+            
+            .legend-label {
+                font-size: 10px;
+            }
+            
+            .basemap-selector {
+                top: 60px;
+                left: 3px;
+                padding: 6px;
+                z-index: 1001;
+            }
+            
+            .basemap-selector select {
+                min-width: 110px;
+                font-size: 11px;
+                padding: 5px 7px;
+                border: 1px solid #2d8a3f;
+            }
+            
+            .menu-panel {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .menu-tab {
+                padding: 10px;
+                font-size: 13px;
+            }
+            
+            .menu-content {
+                padding: 15px;
+            }
+            
+            .menu-content h2 {
+                font-size: 16px;
+                margin-bottom: 12px;
+            }
+            
+            .menu-content h3 {
+                font-size: 14px;
+                margin-top: 15px;
+                margin-bottom: 8px;
+            }
+            
+            .menu-content p {
+                font-size: 12px;
+                margin-bottom: 12px;
+            }
+            
+            .menu-content li {
+                font-size: 11px;
+                padding: 6px 0;
+                padding-left: 20px;
+            }
+            
+            .detail-card {
+                padding: 12px;
+                margin: 10px 0;
+            }
+            
+            .detail-card h4 {
+                font-size: 13px;
+                margin-bottom: 6px;
+            }
+            
+            .detail-card p {
+                font-size: 11px;
+                margin-bottom: 4px;
+            }
+            
+            .info-box {
+                bottom: 8px;
+                left: 3px;
+                font-size: 10px;
+                padding: 7px 10px;
+            }
+            
+            .leaflet-control-zoom {
+                margin-top: 60px !important;
+            }
+            
+            .leaflet-popup-content {
+                margin: 10px;
+                font-size: 11px;
+            }
+            
+            .leaflet-popup-content td {
+                padding: 4px 6px;
+                font-size: 11px;
+            }
+        }
+        
+        /* Very Small Mobile (up to 320px) */
+        @media (max-width: 320px) {
+            .header-title {
+                font-size: 12px;
+            }
+            
+            .logo {
+                height: 24px;
+            }
+            
+            .legend-panel {
+                top: 58px;
+                right: 2px;
+                max-width: calc(100vw - 30px);
+                max-height: 50vh;
+            }
+            
+            .basemap-selector {
+                top: 58px;
+                left: 2px;
+            }
+            
+            .basemap-selector select {
+                min-width: 100px;
+                font-size: 10px;
+                padding: 4px 6px;
+            }
+            
+            .info-box {
+                bottom: 5px;
+                left: 2px;
+                font-size: 9px;
+                padding: 6px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header-bar">
+        <div class="header-left">
+            <div class="header-title">🌳 Tree Health Monitoring System</div>
+            <div class="header-subtitle">Makandura Estate - Real-time vegetation health analysis</div>
+        </div>
+        <div class="header-right">
+            <div class="logo-container">
+                <!-- Replace these src attributes with your actual logo paths -->
+                <img src="images/image1.png" alt="Institute Logo 1" class="logo" id="logo1">
+                <img src="images/image2.png" alt="Institute Logo 2" class="logo" id="logo2">
+            </div>
+            <div class="menu-icon" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Menu Panel -->
+    <div class="menu-panel" id="menuPanel">
+        <div class="menu-tabs">
+            <div class="menu-tab active" data-tab="about">About</div>
+            <div class="menu-tab" data-tab="details">Details</div>
+        </div>
+        
+        <div class="menu-content active" id="about">
+            <h2>🌍 About This Project</h2>
+            <p>
+                The Tree Health Monitoring System is an advanced geospatial platform designed to monitor 
+                and analyze the health status of trees in the Makandura Estate using satellite imagery 
+                and vegetation indices.
+            </p>
+            
+            <h3>🎯 Objectives</h3>
+            <ul>
+                <li>Real-time monitoring of tree health across the estate</li>
+                <li>Early detection of stressed or unhealthy vegetation</li>
+                <li>Data-driven decision making for agricultural management</li>
+                <li>Optimize resource allocation for tree care and maintenance</li>
+                <li>Improve overall crop yield and sustainability</li>
+            </ul>
+            
+            <h3>🔬 Technology Used</h3>
+            <ul>
+                <li><strong>NDVI Analysis:</strong> Normalized Difference Vegetation Index for health assessment</li>
+                <li><strong>Remote Sensing:</strong> High-resolution satellite imagery processing</li>
+                <li><strong>GIS Mapping:</strong> Geographic Information System for spatial analysis</li>
+                <li><strong>Web-based Platform:</strong> Accessible dashboard for real-time monitoring</li>
+            </ul>
+            
+            <h3>👥 Team & Partners</h3>
+            <p>
+                This project is a collaborative effort between agricultural experts, GIS specialists, 
+                and data scientists working together to revolutionize estate management through technology.
+            </p>
+        </div>
+        
+        <div class="menu-content" id="details">
+            <h2>📊 Technical Details</h2>
+            
+            <div class="detail-card">
+                <h4>🌱 Health Categories</h4>
+                <p><strong>Healthy:</strong> Trees with NDVI values indicating optimal vegetation health and vigor</p>
+                <p><strong>Moderate:</strong> Trees showing signs of stress but still maintaining adequate health</p>
+                <p><strong>Unhealthy:</strong> Trees requiring immediate attention and intervention</p>
+            </div>
+            
+            <div class="detail-card">
+                <h4>📉 Stress Level Classification</h4>
+                <p><strong>Low Stress (0.14 - 0.18):</strong> Minimal environmental or physiological stress</p>
+                <p><strong>Medium Stress (0.08 - 0.14):</strong> Moderate stress levels requiring monitoring</p>
+                <p><strong>High Stress (-0.44 - 0.08):</strong> Critical stress requiring immediate action</p>
+            </div>
+            
+            <div class="detail-card">
+                <h4>📍 Location Information</h4>
+                <p><strong>Estate:</strong> Makandura Estate</p>
+                <p><strong>Region:</strong> Western Province, Sri Lanka</p>
+                <p><strong>Coordinates:</strong> 7.31°N - 7.32°N, 79.97°E - 79.99°E</p>
+                <p><strong>Total Area:</strong> Covered by high-resolution orthophoto</p>
+            </div>
+            
+            <div class="detail-card">
+                <h4>📅 Data Information</h4>
+                <p><strong>Image Source:</strong> High-resolution aerial photography</p>
+                <p><strong>Analysis Method:</strong> Multi-spectral vegetation index calculation</p>
+                <p><strong>Update Frequency:</strong> Regular monitoring and data updates</p>
+                <p><strong>Accuracy:</strong> Sub-meter resolution for precise tree-level analysis</p>
+            </div>
+            
+            <h3>🎨 Layer Information</h3>
+            <ul>
+                <li><strong>Base Maps:</strong> Switch between Satellite, Street, Terrain, and Dark modes</li>
+                <li><strong>Aerial Image:</strong> High-resolution orthophoto overlay of the estate</li>
+                <li><strong>Health Markers:</strong> Color-coded points indicating tree health status</li>
+                <li><strong>Stress Levels:</strong> Additional layer showing stress intensity</li>
+            </ul>
+            
+            <h3>💡 How to Use</h3>
+            <ul>
+                <li>Click on any marker to view detailed information about that tree</li>
+                <li>Use the legend panel to toggle different data layers</li>
+                <li>Change base maps using the selector in the top-left corner</li>
+                <li>Zoom and pan to explore different areas of the estate</li>
+                <li>Use the data to make informed management decisions</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Map Container -->
+    <div id="map"></div>
+    
+    <!-- Base Map Selector -->
+    <div class="basemap-selector">
+        <select id="basemap-select">
+            <option value="satellite">🛰️ Satellite</option>
+            <option value="streets">🗺️ Street Map</option>
+            <option value="terrain">⛰️ Terrain</option>
+            <option value="dark">🌙 Dark Map</option>
+        </select>
+    </div>
+    
+    <!-- Legend Panel -->
+    <div class="legend-panel">
+        <div class="legend-header">
+            📊 Map Layers & Legend
+        </div>
+        <div class="legend-content">
+            <!-- Summary removed from legend and moved to separate panel -->
+            <div class="legend-section">
+                <div class="legend-section-title">
+                    <span>🌱 Health Categories</span>
+                    <div class="legend-toggle">
+                        <input type="checkbox" id="toggle-healthy" checked>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(30,94,26,1.0);"></div>
+                    <div class="legend-label">Healthy Trees</div>
+                </div>
+            </div>
+            
+            <div class="legend-section">
+                <div class="legend-section-title">
+                    <span>⚠️ Moderate Health</span>
+                    <div class="legend-toggle">
+                        <input type="checkbox" id="toggle-moderate" checked>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(196,60,57,1.0);"></div>
+                    <div class="legend-label">Moderate Concern</div>
+                </div>
+            </div>
+            
+            <div class="legend-section">
+                <div class="legend-section-title">
+                    <span>🚨 Unhealthy Trees</span>
+                    <div class="legend-toggle">
+                        <input type="checkbox" id="toggle-unhealthy" checked>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(240,250,75,1.0);"></div>
+                    <div class="legend-label">Requires Attention</div>
+                </div>
+            </div>
+            
+            <div class="legend-section">
+                <div class="legend-section-title">
+                    <span>📉 Stress Level Categories</span>
+                    <div class="legend-toggle">
+                        <input type="checkbox" id="toggle-stress" checked>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(255,255,255,1.0);"></div>
+                    <div class="legend-label">High Stress (-0.44 to 0.08)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(255,128,128,1.0);"></div>
+                    <div class="legend-label">Medium Stress (0.08 to 0.14)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(255,0,0,1.0);"></div>
+                    <div class="legend-label">Low Stress (0.14 to 0.18)</div>
+                </div>
+            </div>
+            
+            <div class="legend-section">
+                <div class="legend-section-title">
+                    <span>📷 Aerial Imagery</span>
+                    <div class="legend-toggle">
+                        <input type="checkbox" id="toggle-image" checked>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-label">High-resolution estate orthophoto</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Info Box -->
+    <div class="info-box">
+        <strong>Location:</strong> Makandura Estate, Sri Lanka
+    </div>
+
+    <!-- Separate Tree Summary Panel (bottom-right) -->
+    <div class="summary-panel" id="summaryPanel" aria-live="polite">
+        <div class="summary-title">Tree Summary</div>
+        <div class="summary-stats">
+            <div class="summary-item"><span class="summary-label">Total Trees</span><span class="summary-value" id="countTotal">0</span></div>
+            <div class="summary-item"><span class="summary-label">Healthy</span><span class="summary-value" id="countHealthy">0</span></div>
+            <div class="summary-item"><span class="summary-label">Moderate</span><span class="summary-value" id="countModerate">0</span></div>
+            <div class="summary-item"><span class="summary-label">Unhealthy</span><span class="summary-value" id="countUnhealthy">0</span></div>
+            <div class="summary-item"><span class="summary-label">Stress</span><span class="summary-value" id="countStress">0</span></div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Load your data files -->
+    <script src="data/UnhealthCategories_1.js"></script>
+    <script src="data/Unhealthy_2.js"></script>
+    <script src="data/Moderate_3.js"></script>
+    <script src="data/Healthy_4.js"></script>
+    
+    <script>
+        // Initialize map with satellite view
+        var map = L.map('map', {
+            zoomControl: true,
+            maxZoom: 22,
+            minZoom: 10
+        });
+        
+        // Position zoom control
+        map.zoomControl.setPosition('topleft');
+        
+        // Define base map layers
+        var baseMaps = {
+            satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 19
+            }),
+            streets: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19
+            }),
+            terrain: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM',
+                maxZoom: 17
+            }),
+            dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            })
+        };
+        
+        // Add satellite as default
+        var currentBaseMap = baseMaps.satellite.addTo(map);
+        
+        // Base map selector functionality
+        document.getElementById('basemap-select').addEventListener('change', function(e) {
+            map.removeLayer(currentBaseMap);
+            currentBaseMap = baseMaps[e.target.value].addTo(map);
+            currentBaseMap.bringToBack();
+            if (imageOverlay) imageOverlay.bringToFront();
+        });
+        
+        // Create image overlay (replace with your actual image path)
+        var imgBounds = [[7.314611325144733, 79.97715119261908], [7.321926556749322, 79.9879012298199]];
+        var imageOverlay = L.imageOverlay('data/MakanduraEstate.PNG', imgBounds, {
+            opacity: 0.8
+        }).addTo(map);
+        
+        // Create feature groups for layers
+        var healthyLayer = L.featureGroup().addTo(map);
+        var moderateLayer = L.featureGroup().addTo(map);
+        var unhealthyLayer = L.featureGroup().addTo(map);
+        var stressLayer = L.featureGroup().addTo(map);
+        
+        // Popup creation function
+        function createPopup(properties) {
+            var content = '<table>';
+            content += '<tr><td>ID:</td><td>' + (properties.Id || 'N/A') + '</td></tr>';
+            content += '<tr><td>State:</td><td>' + (properties.StateName || 'N/A') + '</td></tr>';
+            content += '<tr><td>Crop:</td><td>' + (properties.CroupName || 'N/A') + '</td></tr>';
+            content += '<tr><td>Height:</td><td>' + (properties.CroupHight || 'N/A') + '</td></tr>';
+            content += '<tr><td>Health:</td><td>' + (properties.Co_Health || 'N/A') + '</td></tr>';
+            content += '<tr><td>Moisture:</td><td>' + (properties.S_Moisture || 'N/A') + '</td></tr>';
+            content += '<tr><td>Yield:</td><td>' + (properties.Cro_Yield || 'N/A') + '</td></tr>';
+            content += '<tr><td>Age:</td><td>' + (properties.Age || 'N/A') + '</td></tr>';
+            content += '<tr><td>Disease:</td><td>' + (properties.Disease || 'N/A') + '</td></tr>';
+            if (properties.b1_NDVI_1) {
+                content += '<tr><td>NDVI:</td><td>' + properties.b1_NDVI_1.toFixed(3) + '</td></tr>';
+            }
+            content += '</table>';
+            return content;
+        }
+        
+        // Style functions for different categories
+        function styleHealthy(feature) {
+            return {
+                radius: 4.4,
+                fillColor: 'rgba(30,94,26,1.0)',
+                color: 'rgba(255,255,255,1.0)',
+                weight: 1.0,
+                opacity: 1,
+                fillOpacity: 1
+            };
+        }
+        
+        function styleModerate(feature) {
+            return {
+                radius: 4.0,
+                fillColor: 'rgba(196,60,57,1.0)',
+                color: 'rgba(255,255,255,1.0)',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 1
+            };
+        }
+        
+        function styleUnhealthy(feature) {
+            return {
+                radius: 4.0,
+                fillColor: 'rgba(240,250,75,1.0)',
+                color: 'rgba(35,35,35,1.0)',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 1
+            };
+        }
+        
+        function styleStress(feature) {
+            var value = feature.properties.b1_NDVI_1;
+            var fillColor;
+            
+            if (value >= -0.440448 && value <= 0.076539) {
+                fillColor = 'rgba(255,255,255,1.0)';
+            } else if (value > 0.076539 && value <= 0.140953) {
+                fillColor = 'rgba(255,128,128,1.0)';
+            } else {
+                fillColor = 'rgba(255,0,0,1.0)';
+            }
+            
+            return {
+                radius: 4.0,
+                fillColor: fillColor,
+                color: 'rgba(35,35,35,1.0)',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 1
+            };
+        }
+        
+        // Load Healthy data
+        if (typeof json_Healthy_4 !== 'undefined') {
+            L.geoJSON(json_Healthy_4, {
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, styleHealthy(feature));
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup(createPopup(feature.properties));
+                }
+            }).addTo(healthyLayer);
+            console.log('Healthy data loaded:', json_Healthy_4.features.length + ' features');
+        } else {
+            console.error('json_Healthy_4 not found');
+        }
+        
+        // Load Moderate data
+        if (typeof json_Moderate_3 !== 'undefined') {
+            L.geoJSON(json_Moderate_3, {
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, styleModerate(feature));
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup(createPopup(feature.properties));
+                }
+            }).addTo(moderateLayer);
+            console.log('Moderate data loaded:', json_Moderate_3.features.length + ' features');
+        } else {
+            console.error('json_Moderate_3 not found');
+        }
+        
+        // Load Unhealthy data
+        if (typeof json_Unhealthy_2 !== 'undefined') {
+            L.geoJSON(json_Unhealthy_2, {
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, styleUnhealthy(feature));
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup(createPopup(feature.properties));
+                }
+            }).addTo(unhealthyLayer);
+            console.log('Unhealthy data loaded:', json_Unhealthy_2.features.length + ' features');
+        } else {
+            console.error('json_Unhealthy_2 not found');
+        }
+        
+        // Load Stress Categories data
+        if (typeof json_UnhealthCategories_1 !== 'undefined') {
+            L.geoJSON(json_UnhealthCategories_1, {
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, styleStress(feature));
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup(createPopup(feature.properties));
+                }
+            }).addTo(stressLayer);
+            console.log('Stress data loaded:', json_UnhealthCategories_1.features.length + ' features');
+        } else {
+            console.error('json_UnhealthCategories_1 not found');
+        }
+        
+        // Layer toggle functionality and live counts
+        function safeLength(json) {
+            return (json && json.features && Array.isArray(json.features)) ? json.features.length : 0;
+        }
+
+        function updateCounts() {
+            var healthyCount = safeLength(json_Healthy_4);
+            var moderateCount = safeLength(json_Moderate_3);
+            var unhealthyCount = safeLength(json_Unhealthy_2);
+            var stressCount = safeLength(json_UnhealthCategories_1);
+
+            var total = healthyCount + moderateCount + unhealthyCount;
+
+            document.getElementById('countTotal').innerText = total;
+            document.getElementById('countHealthy').innerText = healthyCount + (map.hasLayer(healthyLayer) ? ' 👁️' : '');
+            document.getElementById('countModerate').innerText = moderateCount + (map.hasLayer(moderateLayer) ? ' 👁️' : '');
+            document.getElementById('countUnhealthy').innerText = unhealthyCount + (map.hasLayer(unhealthyLayer) ? ' 👁️' : '');
+            document.getElementById('countStress').innerText = stressCount + (map.hasLayer(stressLayer) ? ' 👁️' : '');
+        }
+
+        // Attach toggle listeners and update counts after each change
+        document.getElementById('toggle-healthy').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                map.addLayer(healthyLayer);
+            } else {
+                map.removeLayer(healthyLayer);
+            }
+            updateCounts();
+        });
+
+        document.getElementById('toggle-moderate').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                map.addLayer(moderateLayer);
+            } else {
+                map.removeLayer(moderateLayer);
+            }
+            updateCounts();
+        });
+
+        document.getElementById('toggle-unhealthy').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                map.addLayer(unhealthyLayer);
+            } else {
+                map.removeLayer(unhealthyLayer);
+            }
+            updateCounts();
+        });
+
+        document.getElementById('toggle-stress').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                map.addLayer(stressLayer);
+            } else {
+                map.removeLayer(stressLayer);
+            }
+            updateCounts();
+        });
+
+        document.getElementById('toggle-image').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                map.addLayer(imageOverlay);
+            } else {
+                map.removeLayer(imageOverlay);
+            }
+        });
+
+        // Call updateCounts as soon as the datasets are loaded
+        setTimeout(updateCounts, 120);
+        
+        // Set initial view to the estate bounds
+        map.fitBounds(imgBounds);
+        
+        // Menu functionality
+        const menuIcon = document.getElementById('menuIcon');
+        const menuPanel = document.getElementById('menuPanel');
+        const menuTabs = document.querySelectorAll('.menu-tab');
+        const menuContents = document.querySelectorAll('.menu-content');
+        const legendPanel = document.querySelector('.legend-panel');
+        const basemapSelector = document.querySelector('.basemap-selector');
+        
+        // Toggle menu panel
+        menuIcon.addEventListener('click', function() {
+            menuIcon.classList.toggle('active');
+            menuPanel.classList.toggle('active');
+            
+            // Hide/Show legend and basemap selector
+            if (menuPanel.classList.contains('active')) {
+                legendPanel.style.display = 'none';
+                basemapSelector.style.display = 'none';
+            } else {
+                legendPanel.style.display = 'block';
+                basemapSelector.style.display = 'block';
+            }
+        });
+        
+        // Tab switching
+        menuTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                
+                // Remove active class from all tabs and contents
+                menuTabs.forEach(t => t.classList.remove('active'));
+                menuContents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                this.classList.add('active');
+                document.getElementById(tabName).classList.add('active');
+            });
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!menuPanel.contains(event.target) && !menuIcon.contains(event.target)) {
+                menuPanel.classList.remove('active');
+                menuIcon.classList.remove('active');
+                
+                // Show legend and basemap selector when menu closes
+                legendPanel.style.display = 'block';
+                basemapSelector.style.display = 'block';
+            }
+        });
+        
+        // Handle logo errors - if logos don't exist, hide them
+        document.getElementById('logo1').addEventListener('error', function() {
+            this.style.display = 'none';
+        });
+        
+        document.getElementById('logo2').addEventListener('error', function() {
+            this.style.display = 'none';
+        });
+        
+        // Ensure proper layer ordering
+        setTimeout(function() {
+            currentBaseMap.bringToBack();
+            if (imageOverlay) imageOverlay.bringToFront();
+            healthyLayer.bringToFront();
+            moderateLayer.bringToFront();
+            unhealthyLayer.bringToFront();
+            stressLayer.bringToFront();
+        }, 100);
+    </script>
+</body>
+</html>
